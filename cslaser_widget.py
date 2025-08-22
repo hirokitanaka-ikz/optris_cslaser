@@ -7,6 +7,8 @@ from PyQt6.QtGui import QFont
 from optris_cslaser_control import OptrisCSLaserControl
 from base_polling_thread import BasePollingThread
 import serial.tools.list_ports
+import pyqtgraph as pg
+import numpy as np
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -23,13 +25,16 @@ class CSLaserWidget(QGroupBox):
         self.pyro = None
         self.polling_thread = None
         self.polling_interval = polling_interval
+        self._last_temperature = None
 
-        # UI Elements
+        # UI elements
         self.scan_port_btn = QPushButton("Scan COM Port")
         self.scan_port_btn.clicked.connect(self.scan_com_port)
         self.ports_combo = QComboBox()
         self.connect_btn = QPushButton("Connect")
         self.connect_btn.clicked.connect(self.toggle_connect)
+
+        self.serial_number_label = QLabel("Serial Number: -----")
 
         self.laser_btn = QPushButton("Laser ON/OFF")
         self.laser_btn.setEnabled(False)
@@ -45,18 +50,19 @@ class CSLaserWidget(QGroupBox):
         self.emissivity_change_btn.setEnabled(False)
         self.emissivity_change_btn.clicked.connect(self.change_emissivity)
 
-        self.temperature_label = QLabel("T = ---.-°C")
+        self.temperature_label = QLabel("---.-°C")
         self.temperature_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         font = QFont()
         font.setPointSize(36)
         font.setBold(True)
         self.temperature_label.setFont(font)
 
-        # Layout
+        # layout
         layout = QVBoxLayout()
         layout.addWidget(self.scan_port_btn)
         layout.addWidget(self.ports_combo)
         layout.addWidget(self.connect_btn)
+        layout.addWidget(self.serial_number_label)
         layout.addWidget(self.laser_btn)
         layout.addWidget(self.emissivity_label)
         emissivity_input_layout = QHBoxLayout()
@@ -92,6 +98,7 @@ class CSLaserWidget(QGroupBox):
                 self.ports_combo.setEnabled(False)
                 self.connect_btn.setText("Disconnect")
                 self.laser_btn.setEnabled(True)
+                self.serial_number_label.setText(f"Serial Number: {self.pyro.serial_number}")
                 self.emissivity_label.setText(f"Emissivity: {self.pyro.emissivity:.2f}")
                 self.emissivity_input.setValue(self.pyro.emissivity)
                 self.emissivity_input.setEnabled(True)
@@ -156,9 +163,13 @@ class CSLaserWidget(QGroupBox):
 
 
     def update_temperature_display(self, temperature: float):
-        self.temperature_label.setText(f"T = {temperature:.1f}°C")
+        self.temperature_label.setText(f"{temperature:.1f}°C")
+        self._last_temperature = temperature
+    
 
-
+    @property
+    def latest_temperature(self) -> float:
+        return self._last_temperature
 
 class CSLaserPollingThread(BasePollingThread):
     updated = pyqtSignal(float)
