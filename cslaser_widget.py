@@ -43,6 +43,7 @@ class CSLaserWidget(QGroupBox):
         self.emissivity_input.setEnabled(False)
         self.emissivity_change_btn = QPushButton("Change Emissivity")
         self.emissivity_change_btn.setEnabled(False)
+        self.emissivity_change_btn.clicked.connect(self.change_emissivity)
 
         self.temperature_label = QLabel("T = ---.-°C")
         self.temperature_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -95,6 +96,7 @@ class CSLaserWidget(QGroupBox):
                 self.emissivity_input.setValue(self.pyro.emissivity)
                 self.emissivity_input.setEnabled(True)
                 self.emissivity_change_btn.setEnabled(True)
+                self.pyro.laser = False # ensure laser to be off
             except Exception as e:
                 logging.error(f"Failed to connect to OptrisCSLaserControl: {e}")
                 return
@@ -126,15 +128,29 @@ class CSLaserWidget(QGroupBox):
 
 
     def toggle_laser(self):
+        if self.polling_thread is not None:
+            self.polling_thread.stop()
         if self.pyro.laser:
-            # if laser is on
+            # if laser is on -> off
             self.pyro.laser = False
         else:
+            # if laser is off -> on
             self.pyro.laser = True
+        self.polling_thread.start()
+
+
+    def change_emissivity(self):
+        if self.polling_thread is not None:
+            self.polling_thread.stop()
+        self.pyro.emissivity = self.emissivity_input.value()
+        self.polling_thread.start()
 
 
     def update_emissivity_display(self):
+        if self.polling_thread is not None:
+            self.polling_thread.stop()
         emissivity = self.pyro.emissivity
+        self.polling_thread.start()
         self.emissivity_label.setText(f"Current Emissivity: {emissivity:.2f}")
         self.emissivity_input.setValue(emissivity)
 
@@ -143,11 +159,12 @@ class CSLaserWidget(QGroupBox):
         self.temperature_label.setText(f"T = {temperature:.1f}°C")
 
 
+
 class CSLaserPollingThread(BasePollingThread):
     updated = pyqtSignal(float)
 
     def get_data(self) -> float:
-        return self.pyro.target_temperature
+        return self.controller.target_temperature
     
 
     def emit_data(self, data:float) -> None:
