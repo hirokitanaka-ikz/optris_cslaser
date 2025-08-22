@@ -2,7 +2,6 @@ from PyQt6.QtWidgets import (
     QGroupBox, QPushButton, QLabel, QVBoxLayout, QHBoxLayout,
     QComboBox, QDoubleSpinBox, QFormLayout, QMessageBox
 )
-
 from PyQt6.QtCore import pyqtSignal, Qt
 from PyQt6.QtGui import QFont
 from optris_cslaser_control import OptrisCSLaserControl
