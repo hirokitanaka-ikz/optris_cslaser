@@ -1,13 +1,13 @@
 import serial
 import logging
 from typing import Optional
-import time
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 BAUDRATE = 9600
 DATA_BITS = serial.EIGHTBITS
 PARITY = serial.PARITY_NONE
 STOP_BITS = serial.STOPBITS_ONE
+FLOW_CONTROL = serial.XONXOFF
 TIMEOUT = 1.0
 
 
@@ -24,17 +24,10 @@ class OptrisCSLaserControl:
             try:
                 self.serial = serial.Serial(
                     port=self.port, baudrate=self.baudrate, timeout=self.timeout, bytesize=DATA_BITS,
-                    parity=PARITY, stopbits=STOP_BITS, xonxoff=False)
-                self.serial.dtr = False
-                time.sleep(0.5)
-                self.serial.dtr = True
-                time.sleep(0.5)
-                self.serial.reset_input_buffer()
-                self.serial.reset_output_buffer()
+                    parity=PARITY, stopbits=STOP_BITS, xonxoff=FLOW_CONTROL)
                 logging.info(f"Connected to Optris CS Laser on {self.port}.")
             except serial.SerialException as e:
                 logging.error(f"Failed to connect to Optris CS Laser: {e}")
-            
 
 
     def disconnect(self):
@@ -65,9 +58,8 @@ class OptrisCSLaserControl:
             logging.warning("No serial connection established. Cannot send command.")
             return
         if self.serial.is_open:
-            self.serial.flush()
-            self.serial.write(hex_command)
-            #logging.info(f"Sending command: {hex_command}")
+            self.serial.write(hex_command.encode('utf-8'))
+            logging.info(f"Sending command: {hex_command}")
     
 
     def read_response(self, read_bytes: int) -> Optional[str]:
