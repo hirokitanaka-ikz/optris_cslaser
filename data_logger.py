@@ -1,5 +1,4 @@
 import csv
-from dataclasses import asdict, dataclass
 import os
 from pathlib import Path
 
@@ -15,8 +14,7 @@ class DataLogger:
         return self._csv_path
 
 
-    def write_csv(self, data_object) -> None:
-        data_dict = data_object.to_dict()
+    def write_csv(self, data_dict:dict) -> None:
         # write header if file not existing
         if not os.path.exists(self._csv_path):
             with open(self._csv_path, "w", newline="", encoding=ENCODING) as f_csv:
