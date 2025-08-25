@@ -3,7 +3,6 @@ from PyQt6.QtCore import QLocale
 from cslaser_widget import CSLaserWidget
 from chart_widget import ChartWidget
 from data_collector import DataCollector
-from data_logger import DataLogger
 
 
 def main():

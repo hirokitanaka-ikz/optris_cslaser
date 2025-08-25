@@ -21,7 +21,7 @@ def default_filename() -> str:
 class ChartWidget(QGroupBox):
     def __init__(self, data_collector, parent=None):
         super().__init__("Temperature Chart", parent)
-        self.collector = data_collector
+        self.data_collector = data_collector
         self.record_timer = None
         self.start_timestamp = None
 
@@ -51,10 +51,11 @@ class ChartWidget(QGroupBox):
 
 
     def initialize_chart(self):
+        self.plot_widget.clear()
         self.x_data = []
         self.y_data = []
         self.strat_time = None
-        self.plot = self.plot_widget.plot(pen="b")
+        self.plot = self.plot_widget.plot(self.x_data, self.y_data, pen="b")
     
 
     def __del__(self):
@@ -75,6 +76,7 @@ class ChartWidget(QGroupBox):
             elapsed_min = (timestamp - self.start_timestamp).total_seconds() / 60.0
             self.x_data.append(elapsed_min)
             self.y_data.append(temperature)
+            self.plot.setData(self.x_data, self.y_data)
         except Exception as e:
             logging.error(f"Fail to plot data: {e}")
             return
@@ -91,8 +93,8 @@ class ChartWidget(QGroupBox):
             csv_path = folder_path / f"{default_name}.csv"
             self.data_logger = DataLogger(csv_path)
             # write first data
-            self.write_data()
             self.initialize_chart()
+            self.write_data()
             self.record_timer = QTimer(self)
             self.record_timer.timeout.connect(self.write_data)
             try:
@@ -102,12 +104,13 @@ class ChartWidget(QGroupBox):
                 self.record_timer = None
                 return
             self.record_btn.setText("Stop Record")
-            QMessageBox.information(self, "Recording Start", f"save path: \n{self.data_logger.csv_path}\n{self.data_logger.yml_path}\n\nRecording start")
-            logging.info("LITMoS data recording started")
+            QMessageBox.information(self, "Recording Start", f"save path: \n{self.data_logger.csv_path}\nRecording start")
+            logging.info("Data recording started")
         else:
             self.record_timer.stop()
             self.record_timer = None
-            QMessageBox.information(self, "Recording Stop", f"save path: \n{self.data_logger.csv_path}\n{self.data_logger.yml_path}\n\nRecording stop")
-            logging.info("LITMoS data recording stopped")
+            self.start_timestamp = None
+            QMessageBox.information(self, "Recording Stop", f"save path: \n{self.data_logger.csv_path}\nRecording stop")
+            logging.info("Data recording stopped")
             self.record_btn.setText("Start Record")
 

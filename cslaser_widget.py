@@ -10,6 +10,7 @@ import serial.tools.list_ports
 import pyqtgraph as pg
 import numpy as np
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -136,13 +137,15 @@ class CSLaserWidget(QGroupBox):
 
     def toggle_laser(self):
         if self.polling_thread is not None:
-            self.polling_thread.stop()
+            self.polling_thread.stop() # This completely stop the process!
         if self.pyro.laser:
             # if laser is on -> off
             self.pyro.laser = False
         else:
             # if laser is off -> on
             self.pyro.laser = True
+        self.polling_thread = CSLaserPollingThread(self.pyro, self.polling_interval, parent=self)
+        self.polling_thread.updated.connect(self.update_temperature_display)
         self.polling_thread.start()
 
 
@@ -168,8 +171,20 @@ class CSLaserWidget(QGroupBox):
     
 
     @property
-    def latest_temperature(self) -> float:
+    def last_temperature(self) -> float:
         return self._last_temperature
+    
+    
+    def __del__(self):
+        if self.polling_thread is not None:
+                self.polling_thread.stop()
+                self.polling_thread = None
+        try:
+            self.pyro.disconnect()
+            self.pyro = None
+        except Exception:
+            pass
+
 
 class CSLaserPollingThread(BasePollingThread):
     updated = pyqtSignal(float)
